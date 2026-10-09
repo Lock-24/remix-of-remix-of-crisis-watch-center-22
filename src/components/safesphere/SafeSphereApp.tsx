@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Activity, AlertTriangle, BellRing, Building2, Check, CheckCircle2, ChevronRight,
   CloudCog, Database, Factory, Gauge, HeartPulse, History, Home, KeyRound,
-  Lambda, MapPin, Menu, Network, PencilLine, Radio, RotateCcw, Search, Send,
+  MapPin, Menu, Network, PencilLine, Radio, RotateCcw, Search, Send, Zap,
   Shield, ShieldCheck, Siren, Sparkles, Users, X,
 } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -18,6 +18,17 @@ const chartData = [
   { time: "08:00", alerts: 2, response: 72 }, { time: "10:00", alerts: 4, response: 79 },
   { time: "12:00", alerts: 3, response: 76 }, { time: "14:00", alerts: 7, response: 88 },
   { time: "16:00", alerts: 5, response: 91 }, { time: "18:00", alerts: 3, response: 94 },
+];
+const navItems = [
+  { key: "dashboard", label: "Dashboard" }, { key: "alerts", label: "Alerts" },
+  { key: "aws", label: "About AWS" }, { key: "team", label: "Team" },
+  { key: "admin", label: "Admin Studio" },
+];
+const locationCoverage = [
+  { icon: Building2, label: "College", count: "4 zones" },
+  { icon: Factory, label: "Factory", count: "3 zones" },
+  { icon: HeartPulse, label: "Hospital", count: "2 zones" },
+  { icon: Home, label: "Homes", count: "3 zones" },
 ];
 
 const severityStyle: Record<Severity, string> = {
@@ -86,7 +97,7 @@ export function SafeSphereApp() {
             <span className="text-left"><span className="block text-base font-bold">{content.projectName}</span><span className="block text-[10px] uppercase tracking-widest text-muted-foreground">Emergency command</span></span>
           </button>
           <nav className="hidden items-center gap-1 md:flex" aria-label="Main navigation">
-            {[['dashboard','Dashboard'],['alerts','Alerts'],['aws','About AWS'],['team','Team'],['admin','Admin Studio']].map(([key,label]) => <Button key={key} size="sm" variant={activeView === key ? "secondary" : "ghost"} onClick={() => navigate(key)}>{label}</Button>)}
+            {navItems.map(({ key, label }) => <Button key={key} size="sm" variant={activeView === key ? "secondary" : "ghost"} onClick={() => navigate(key)}>{label}</Button>)}
           </nav>
           <div className="flex items-center gap-2">
             <span className="hidden items-center gap-2 rounded-full border border-success/20 bg-success-muted px-3 py-1.5 text-xs font-semibold text-success sm:flex"><span className="status-pulse size-2 rounded-full bg-success" />System ready</span>
@@ -94,7 +105,7 @@ export function SafeSphereApp() {
             <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle menu">{menuOpen ? <X /> : <Menu />}</Button>
           </div>
         </div>
-        {menuOpen && <nav className="glass-panel mx-4 mb-3 grid gap-1 p-2 md:hidden">{[['dashboard','Dashboard'],['alerts','Alerts'],['aws','About AWS'],['team','Team'],['admin','Admin Studio']].map(([key,label]) => <Button key={key} variant="ghost" className="justify-start" onClick={() => navigate(key)}>{label}</Button>)}</nav>}
+        {menuOpen && <nav className="glass-panel mx-4 mb-3 grid gap-1 p-2 md:hidden">{navItems.map(({ key, label }) => <Button key={key} variant="ghost" className="justify-start" onClick={() => navigate(key)}>{label}</Button>)}</nav>}
       </header>
 
       <div className="relative mx-auto max-w-[1480px] px-4 py-6 sm:px-6 sm:py-8">
@@ -141,7 +152,7 @@ function Dashboard({ content, alerts, overallRate, setCreateOpen, navigate, ackn
     </section>
     <section className="mb-6 grid gap-5 xl:grid-cols-[1.25fr_.75fr]">
       <div className="glass-panel p-5 sm:p-6"><div className="mb-5 flex items-start justify-between"><div><h2 className="font-display text-lg font-bold">Response intelligence</h2><p className="mt-1 text-xs text-muted-foreground">Aaj ka simulated acknowledgement trend</p></div><span className="flex items-center gap-2 text-xs text-success"><span className="size-2 rounded-full bg-success" />Response %</span></div><div className="h-64"><ResponsiveContainer width="100%" height="100%"><AreaChart data={chartData}><defs><linearGradient id="responseFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--primary)" stopOpacity={0.4}/><stop offset="100%" stopColor="var(--primary)" stopOpacity={0}/></linearGradient></defs><CartesianGrid stroke="var(--chart-grid)" vertical={false}/><XAxis dataKey="time" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false}/><YAxis stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false}/><Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 6 }} /><Area type="monotone" dataKey="response" stroke="var(--primary)" strokeWidth={2} fill="url(#responseFill)" /></AreaChart></ResponsiveContainer></div></div>
-      <div className="glass-panel p-5 sm:p-6"><div className="mb-5 flex items-center justify-between"><div><h2 className="font-display text-lg font-bold">Location coverage</h2><p className="mt-1 text-xs text-muted-foreground">Connected zones ka demo view</p></div><MapPin className="size-5 text-primary" /></div><div className="grid gap-3">{[[Building2,'College','4 zones'],[Factory,'Factory','3 zones'],[HeartPulse,'Hospital','2 zones'],[Home,'Homes','3 zones']].map(([Icon,label,count])=><div key={String(label)} className="flex items-center gap-3 border-b border-border/70 pb-3 last:border-0 last:pb-0"><span className="grid size-9 place-items-center rounded-md bg-accent text-primary"><Icon className="size-4" /></span><span className="flex-1 text-sm font-medium">{String(label)}</span><span className="text-xs text-muted-foreground">{String(count)}</span><ChevronRight className="size-4 text-muted-foreground" /></div>)}</div></div>
+      <div className="glass-panel p-5 sm:p-6"><div className="mb-5 flex items-center justify-between"><div><h2 className="font-display text-lg font-bold">Location coverage</h2><p className="mt-1 text-xs text-muted-foreground">Connected zones ka demo view</p></div><MapPin className="size-5 text-primary" /></div><div className="grid gap-3">{locationCoverage.map(({ icon: Icon, label, count })=><div key={label} className="flex items-center gap-3 border-b border-border/70 pb-3 last:border-0 last:pb-0"><span className="grid size-9 place-items-center rounded-md bg-accent text-primary"><Icon className="size-4" /></span><span className="flex-1 text-sm font-medium">{label}</span><span className="text-xs text-muted-foreground">{count}</span><ChevronRight className="size-4 text-muted-foreground" /></div>)}</div></div>
     </section>
     <AlertTable alerts={alerts.slice(0,4)} acknowledge={acknowledge} resolve={resolve} onAll={() => navigate("alerts")} />
   </div>;
@@ -154,7 +165,7 @@ function AlertTable({ alerts, acknowledge, resolve, onAll }: { alerts:AlertRecor
 function AlertsView({ alerts, query, setQuery, filter, setFilter, acknowledge, resolve, setCreateOpen }: { alerts:AlertRecord[]; query:string; setQuery:(v:string)=>void; filter:string; setFilter:(v:string)=>void; acknowledge:(id:string)=>void; resolve:(id:string)=>void; setCreateOpen:(v:boolean)=>void }) { return <div className="animate-enter"><SectionHeading eyebrow="Alert center" title="Har signal, ek jagah." description="Simulated emergencies ko monitor, acknowledge aur resolve karein. Koi real notification send nahi hoti." action={<Button variant="danger" onClick={()=>setCreateOpen(true)}><BellRing className="size-4"/>New simulation</Button>} /><div className="mb-4 flex flex-col gap-3 sm:flex-row"><label className="relative flex-1"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Alert, location ya ID search karein" className="h-11 w-full rounded-md border border-border bg-card pl-10 pr-3 text-sm outline-none focus:border-primary" /></label><div className="flex gap-1 overflow-x-auto rounded-md border border-border bg-card p-1">{['All','Active','Resolved','Critical','High'].map(item=><Button key={item} size="sm" variant={filter===item?'primary':'ghost'} onClick={()=>setFilter(item)}>{item}</Button>)}</div></div><AlertTable alerts={alerts} acknowledge={acknowledge} resolve={resolve}/></div>; }
 
 const awsServices = [
-  { icon:Lambda, title:'AWS Lambda', text:'Alert create hote hi server manage kiye bina response logic run kar sakta hai.' },
+  { icon:Zap, title:'AWS Lambda', text:'Alert create hote hi server manage kiye bina response logic run kar sakta hai.' },
   { icon:Database, title:'DynamoDB', text:'Alerts, acknowledgement aur history ko fast, scalable database mein store kar sakta hai.' },
   { icon:Network, title:'API Gateway', text:'Website aur cloud functions ke beech secure entry point aur request control de sakta hai.' },
   { icon:KeyRound, title:'Amazon Cognito', text:'Admin aur responders ke secure sign-in, roles aur access permissions manage kar sakta hai.' },
