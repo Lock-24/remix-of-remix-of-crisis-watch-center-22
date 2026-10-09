@@ -17,7 +17,7 @@ export type AlertRecord = {
 export type Notice = { id: string; title: string; body: string; createdAt: number };
 export type AppUser = { username: string; passwordHash: string; blocked: boolean; createdAt: number };
 export type RequestStatus = "Open" | "Resolved";
-export type RequestRecord = { id: string; username: string; category: string; subject: string; message: string; status: RequestStatus; reply?: string; createdAt: number };
+export type RequestRecord = { id: string; username: string; category: string; subject: string; message: string; status: RequestStatus; reply?: string | undefined; createdAt: number };
 export const REQUEST_CATEGORIES = ["Safety concern", "Help needed", "Suggestion", "Report issue", "Other"] as const;
 
 export function createRequest(username: string, input: { category: string; subject: string; message: string }): RequestRecord | string {
