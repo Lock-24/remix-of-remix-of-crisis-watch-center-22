@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type AppUser, acknowledgementRate, createSimulatedAlert, hashPassword, isAdminPassword, loginUser, validateSignup } from "@/lib/safesphere-data";
+import { createRequest, type AppUser, acknowledgementRate, createSimulatedAlert, hashPassword, isAdminPassword, loginUser, validateSignup } from "@/lib/safesphere-data";
 
 describe("SafeSphere rules", () => {
   it("labels a new alert as simulated and active", () => {
@@ -28,5 +28,11 @@ describe("SafeSphere rules", () => {
 
   it("rejects duplicate usernames", () => {
     expect(validateSignup([{ username: "ravi", passwordHash: "", blocked: false, createdAt: 0 }], "ravi", "secret1")).not.toBeNull();
+  });
+
+  it("user request starts Open and rejects too-short subject", () => {
+    const r = createRequest("ravi", { category: "Help needed", subject: "Lift stuck", message: "Lift in Block A is stuck" });
+    expect(typeof r === "object" && r.status).toBe("Open");
+    expect(typeof createRequest("ravi", { category: "Other", subject: "a", message: "hello there" })).toBe("string");
   });
 });

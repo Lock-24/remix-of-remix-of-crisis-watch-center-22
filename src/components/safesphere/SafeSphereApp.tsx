@@ -390,3 +390,44 @@ function AdminView({ alerts, setAlerts, notices, setNotices, requests, setReques
     </div>
   </div>;
 }
+
+function RequestItem({ r, children }: { r: RequestRecord; children?: React.ReactNode }) {
+  return <article className="glass-panel hover-lift p-5">
+    <div className="flex flex-wrap items-center gap-2"><span className="rounded-full border border-primary/25 bg-primary/10 px-2 py-1 text-[10px] font-bold uppercase text-primary">{r.category}</span><span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase ${r.status === "Open" ? "bg-warning-muted text-warning" : "bg-success-muted text-success"}`}>{r.status}</span><span className="ml-auto text-xs text-muted-foreground">@{r.username} · {timeAgo(r.createdAt)}</span></div>
+    <h3 className="mt-3 font-bold">{r.subject}</h3>
+    <p className="mt-1 whitespace-pre-line text-sm leading-6 text-muted-foreground">{r.message}</p>
+    {r.reply && <p className="mt-3 rounded-md border border-success/25 bg-success-muted p-3 text-sm"><span className="font-semibold text-success">Admin reply: </span>{r.reply}</p>}
+    {children}
+  </article>;
+}
+
+function RequestsView({ username, requests, setRequests, toast }: { username: string; requests: RequestRecord[]; setRequests: React.Dispatch<React.SetStateAction<RequestRecord[]>>; toast: (t: Omit<Toast, "id">) => void }) {
+  const [f, setF] = useState({ category: REQUEST_CATEGORIES[0] as string, subject: "", message: "" });
+  const [error, setError] = useState("");
+  const mine = requests.filter((r) => r.username === username);
+  return <div>
+    <SectionHeading eyebrow="Requests" title="Send a request to the admin" description="Have a safety concern, need help, or want to suggest something? Your request goes straight to the campus admin team." />
+    <div className="grid gap-5 lg:grid-cols-[.9fr_1.1fr]">
+      <form className="glass-panel grid content-start gap-4 p-5 sm:p-6" onSubmit={(e) => { e.preventDefault(); const r = createRequest(username, f); if (typeof r === "string") { setError(r); return; } setRequests((c) => [r, ...c]); setF({ ...f, subject: "", message: "" }); setError(""); toast({ title: "Request sent", body: "The admin team will review it soon.", tone: "notice" }); }}>
+        <div className="grid gap-2 text-xs font-medium text-muted-foreground">Category<div className="flex flex-wrap gap-2">{REQUEST_CATEGORIES.map((c) => <button type="button" key={c} onClick={() => setF({ ...f, category: c })} className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${f.category === c ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:border-primary/40"}`}>{c}</button>)}</div></div>
+        <Field label="Subject" required maxLength={80} value={f.subject} onChange={(e) => setF({ ...f, subject: e.target.value })} placeholder="e.g. Broken fire extinguisher in Block A" />
+        <TextArea label="Message" required maxLength={600} value={f.message} onChange={(e) => setF({ ...f, message: e.target.value })} placeholder="Describe what you need…" />
+        {error && <p className="text-sm text-emergency-soft">{error}</p>}
+        <Button variant="primary" type="submit"><Send className="size-4" /> Send request</Button>
+      </form>
+      <div><h2 className="mb-3 font-display text-lg font-bold">My requests</h2><div className="stagger grid gap-3">{mine.length ? mine.map((r) => <RequestItem key={r.id} r={r} />) : <p className="glass-panel p-6 text-sm text-muted-foreground">You haven't sent any requests yet.</p>}</div></div>
+    </div>
+  </div>;
+}
+
+function AdminRequests({ requests, setRequests, toast }: { requests: RequestRecord[]; setRequests: React.Dispatch<React.SetStateAction<RequestRecord[]>>; toast: (t: Omit<Toast, "id">) => void }) {
+  const [replies, setReplies] = useState<Record<string, string>>({});
+  if (!requests.length) return <p className="glass-panel p-6 text-sm text-muted-foreground">No requests from users yet.</p>;
+  return <div className="stagger grid gap-4 md:grid-cols-2">{requests.map((r) => <RequestItem key={r.id} r={r}>
+    <div className="mt-4 flex flex-wrap gap-2">
+      {r.status === "Open" && <><input value={replies[r.id] ?? ""} onChange={(e) => setReplies({ ...replies, [r.id]: e.target.value })} maxLength={300} placeholder="Write a reply (optional)…" className="h-9 min-w-0 flex-1 rounded-md border border-border bg-input px-3 text-sm outline-none focus:border-primary" />
+      <Button size="sm" variant="primary" onClick={() => { setRequests((c) => c.map((x) => x.id === r.id ? { ...x, status: "Resolved", reply: (replies[r.id] ?? "").trim() || x.reply } : x)); toast({ title: "Request resolved", body: r.subject, tone: "notice" }); }}><CheckCircle2 className="size-4" /> Resolve</Button></>}
+      <Button size="sm" variant="ghost" aria-label="Delete request" onClick={() => setRequests((c) => c.filter((x) => x.id !== r.id))}><Trash2 className="size-4" /> Delete</Button>
+    </div>
+  </RequestItem>)}</div>;
+}
