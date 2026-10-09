@@ -2,17 +2,17 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity, AlertTriangle, Bell, BellOff, BellRing, Building2, CheckCircle2, CloudCog, Database,
   Factory, HeartPulse, Home, KeyRound, Lock, LogOut, Megaphone, Menu, Network, PencilLine, Radio,
-  Search, Send, Shield, ShieldCheck, Siren, Sparkles, Trash2, UserX, UserCheck, Users, X, Zap,
+  Search, Send, Moon, Sun, Inbox, MessageSquarePlus, FlaskConical, Library, BedDouble, Shield, ShieldCheck, Siren, Sparkles, Trash2, UserX, UserCheck, Users, X, Zap,
 } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Button } from "./Button";
 import {
   acknowledgementRate, createSimulatedAlert, defaultAlerts, defaultContent, defaultNotices,
   hashPassword, isAdminPassword, loginUser, normalizeUsername, timeAgo, validateSignup,
-  type AlertRecord, type AppUser, type Notice, type Severity, type SiteContent,
+  createRequest, REQUEST_CATEGORIES, type RequestRecord, type AlertRecord, type AppUser, type Notice, type Severity, type SiteContent,
 } from "@/lib/safesphere-data";
 
-const KEYS = { alerts: "safesphere-alerts-v2", notices: "safesphere-notices-v1", users: "safesphere-users-v1", content: "safesphere-content-v2", session: "safesphere-session-v1" };
+const KEYS = { alerts: "safesphere-alerts-v3", requests: "safesphere-requests-v1", theme: "safesphere-theme", notices: "safesphere-notices-v1", users: "safesphere-users-v1", content: "safesphere-content-v3", session: "safesphere-session-v1" };
 const ADMIN_SESSION = "safesphere-admin-unlocked";
 
 const chartData = [
@@ -22,7 +22,7 @@ const chartData = [
 ];
 const navItems = [
   { key: "dashboard", label: "Dashboard" }, { key: "alerts", label: "Alerts" },
-  { key: "notices", label: "Notices" }, { key: "aws", label: "About AWS" }, { key: "team", label: "Team" },
+  { key: "notices", label: "Notices" }, { key: "requests", label: "Requests" }, { key: "aws", label: "About AWS" }, { key: "team", label: "Team" },
 ];
 const severityStyle: Record<Severity, string> = {
   Critical: "border-emergency/25 bg-emergency-muted text-emergency-soft",
@@ -55,7 +55,7 @@ function Blobs() {
   return <div aria-hidden className="pointer-events-none fixed inset-0 overflow-hidden"><div className="blob blob-a" /><div className="blob blob-b" /><div className="blob blob-c" /><div className="ambient-grid absolute inset-0" /></div>;
 }
 function Logo({ name }: { name: string }) {
-  return <span className="flex items-center gap-3"><span className="grid size-9 place-items-center rounded-md bg-primary text-primary-foreground shadow-signal"><Shield className="size-5" /></span><span className="text-left"><span className="block text-base font-bold">{name}</span><span className="block text-[10px] uppercase tracking-widest text-muted-foreground">Emergency command</span></span></span>;
+  return <span className="flex items-center gap-3"><span className="grid size-9 place-items-center rounded-md bg-primary text-primary-foreground shadow-signal"><Shield className="size-5" /></span><span className="text-left"><span className="block text-base font-bold">{name}</span><span className="block text-[10px] uppercase tracking-widest text-muted-foreground">Campus safety</span></span></span>;
 }
 
 export function SafeSphereApp() {
@@ -71,6 +71,9 @@ export function SafeSphereApp() {
   const [adminPrompt, setAdminPrompt] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission | "unsupported">("default");
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [requests, setRequests] = useState<RequestRecord[]>([]);
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [bigAlert, setBigAlert] = useState<AlertRecord | null>(null);
   const seen = useRef<{ alerts: Set<string>; notices: Set<string> }>({ alerts: new Set(), notices: new Set() });
 
   const toast = (t: Omit<Toast, "id">) => {
@@ -84,6 +87,8 @@ export function SafeSphereApp() {
     seen.current = { alerts: new Set(a.map((x) => x.id)), notices: new Set(n.map((x) => x.id)) };
     setAlerts(a); setNotices(n); setUsers(load(KEYS.users, [])); setContent(load(KEYS.content, defaultContent));
     setSession(load<string | null>(KEYS.session, null));
+    setRequests(load(KEYS.requests, []));
+    setTheme(load<"dark" | "light">(KEYS.theme, "dark"));
     setAdmin(window.sessionStorage.getItem(ADMIN_SESSION) === "1");
     setPermission(typeof Notification === "undefined" ? "unsupported" : Notification.permission);
     setHydrated(true);
@@ -93,12 +98,23 @@ export function SafeSphereApp() {
   useEffect(() => { if (hydrated) localStorage.setItem(KEYS.notices, JSON.stringify(notices)); }, [notices, hydrated]);
   useEffect(() => { if (hydrated) localStorage.setItem(KEYS.users, JSON.stringify(users)); }, [users, hydrated]);
   useEffect(() => { if (hydrated) localStorage.setItem(KEYS.content, JSON.stringify(content)); }, [content, hydrated]);
+  useEffect(() => { if (hydrated) localStorage.setItem(KEYS.requests, JSON.stringify(requests)); }, [requests, hydrated]);
+  useEffect(() => {
+    if (!hydrated) return;
+    localStorage.setItem(KEYS.theme, JSON.stringify(theme));
+    document.documentElement.classList.toggle("light", theme === "light");
+  }, [theme, hydrated]);
+  const toggleTheme = () => {
+    const el = document.documentElement; el.classList.add("theme-anim");
+    setTheme((t) => (t === "dark" ? "light" : "dark"));
+    window.setTimeout(() => el.classList.remove("theme-anim"), 450);
+  };
   useEffect(() => { if (hydrated) localStorage.setItem(KEYS.session, JSON.stringify(session)); }, [session, hydrated]);
 
   // Notify when new alerts/notices appear (same tab or from the admin in another tab)
   useEffect(() => {
     if (!hydrated) return;
-    alerts.forEach((a) => { if (!seen.current.alerts.has(a.id)) { seen.current.alerts.add(a.id); pushNotification(`🚨 ${a.severity} alert: ${a.title}`, `${a.location} — ${a.message}`); toast({ title: `${a.severity} alert · ${a.title}`, body: a.message, tone: "alert" }); } });
+    alerts.forEach((a) => { if (!seen.current.alerts.has(a.id)) { seen.current.alerts.add(a.id); pushNotification(`🚨 ${a.severity} alert: ${a.title}`, `${a.location} — ${a.message}`); setBigAlert(a); } });
     notices.forEach((n) => { if (!seen.current.notices.has(n.id)) { seen.current.notices.add(n.id); pushNotification(`📢 Notice: ${n.title}`, n.body); toast({ title: `Notice · ${n.title}`, body: n.body, tone: "notice" }); } });
   }, [alerts, notices, hydrated]);
 
@@ -107,6 +123,7 @@ export function SafeSphereApp() {
       if (e.key === KEYS.alerts) setAlerts(load(KEYS.alerts, defaultAlerts));
       if (e.key === KEYS.notices) setNotices(load(KEYS.notices, defaultNotices));
       if (e.key === KEYS.users) setUsers(load(KEYS.users, []));
+      if (e.key === KEYS.requests) setRequests(load(KEYS.requests, []));
       if (e.key === KEYS.content) setContent(load(KEYS.content, defaultContent));
     };
     window.addEventListener("storage", onStorage);
@@ -135,15 +152,29 @@ export function SafeSphereApp() {
   if (!hydrated) return <main className="min-h-screen bg-background"><Blobs /></main>;
 
   const signedIn = !!currentUser && !currentUser.blocked;
-  const toastLayer = <div className="fixed right-4 top-20 z-[60] grid w-[min(92vw,360px)] gap-2">{toasts.map((t) => <div key={t.id} className={`glass-modal animate-enter flex gap-3 p-4 ${t.tone === "alert" ? "border-emergency/40" : ""}`}><span className={`metric-icon shrink-0 ${t.tone === "alert" ? "metric-danger" : "metric-primary"}`}>{t.tone === "alert" ? <Siren className="size-5" /> : <Megaphone className="size-5" />}</span><div className="min-w-0"><p className="text-sm font-bold">{t.title}</p><p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{t.body}</p></div></div>)}</div>;
+  const themeBtn = <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Toggle theme" title={theme === "dark" ? "Light mode" : "Dark mode"}>{theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}</Button>;
+  const alertOverlay = bigAlert && <div className="alert-overlay-in fixed inset-0 z-[70] grid place-items-center bg-overlay p-4 backdrop-blur-sm" onClick={() => setBigAlert(null)}>
+    <div role="alertdialog" aria-label="New emergency alert" className="glass-modal alert-pop alert-glow relative w-full max-w-md overflow-hidden border-emergency/50 p-6 text-center" onClick={(e) => e.stopPropagation()}>
+      <div className="emergency-line alert-flash absolute inset-x-0 top-0 h-1" />
+      <div className="relative mx-auto grid size-20 place-items-center"><span className="alert-ring absolute inset-0 rounded-full bg-emergency/40" /><span className="alert-ring absolute inset-0 rounded-full bg-emergency/30 [animation-delay:.5s]" /><span className="relative grid size-16 place-items-center rounded-full bg-emergency text-emergency-foreground shadow-emergency"><Siren className="siren-shake size-8" /></span></div>
+      <p className="mt-5 text-xs font-bold uppercase tracking-[0.2em] text-emergency-soft">New emergency alert · Simulated</p>
+      <h2 className="mt-2 font-display text-2xl font-bold">{bigAlert.title}</h2>
+      <div className="mt-3 flex justify-center"><SeverityPill severity={bigAlert.severity} /></div>
+      <p className="mt-4 text-sm leading-6 text-muted-foreground">{bigAlert.message}</p>
+      <p className="mt-2 text-xs text-muted-foreground">{bigAlert.location}</p>
+      <div className="mt-6 grid grid-cols-2 gap-2"><Button variant="primary" onClick={() => { acknowledge(bigAlert.id); setBigAlert(null); }}><CheckCircle2 className="size-4" /> I'm safe</Button><Button onClick={() => { setBigAlert(null); navigate("alerts"); }}>View alerts</Button></div>
+    </div>
+  </div>;
+  const toastLayer = <div className="fixed right-4 top-20 z-[60] grid w-[min(92vw,360px)] gap-2">{toasts.map((t) => <div key={t.id} className={`glass-modal toast-in flex gap-3 p-4 ${t.tone === "alert" ? "border-emergency/40" : ""}`}><span className={`metric-icon shrink-0 ${t.tone === "alert" ? "metric-danger" : "metric-primary"}`}>{t.tone === "alert" ? <Siren className="size-5" /> : <Megaphone className="size-5" />}</span><div className="min-w-0"><p className="text-sm font-bold">{t.title}</p><p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{t.body}</p></div></div>)}</div>;
   const adminModal = adminPrompt && <AdminLoginModal onClose={() => setAdminPrompt(false)} onUnlock={unlockAdmin} />;
 
   if (!signedIn && !admin) {
     return <main className="relative min-h-screen bg-background text-foreground"><Blobs />
+      <div className="absolute right-4 top-4 z-10">{themeBtn}</div>
       <AuthScreen content={content} users={users} onOpenAdmin={() => setAdminPrompt(true)}
         onLogin={(name) => { setSession(name); setView("dashboard"); if (permission === "default") void requestPermission(); }}
         onSignup={(u) => { setUsers((c) => [...c, u]); setSession(u.username); if (permission === "default") void requestPermission(); }} />
-      {adminModal}{toastLayer}</main>;
+      {adminModal}{toastLayer}{alertOverlay}</main>;
   }
 
   const items = admin ? [...navItems, { key: "admin", label: "Admin Panel" }] : navItems;
@@ -158,6 +189,7 @@ export function SafeSphereApp() {
             {items.map(({ key, label }) => <Button key={key} size="sm" variant={view === key ? "secondary" : "ghost"} onClick={() => navigate(key)}>{label}</Button>)}
           </nav>
           <div className="flex items-center gap-2">
+            {themeBtn}
             {permission !== "unsupported" && <Button variant="ghost" size="icon" onClick={requestPermission} aria-label="Enable notifications" title={permission === "granted" ? "Notifications on" : "Enable notifications"}>{permission === "granted" ? <BellRing className="size-4 text-success" /> : permission === "denied" ? <BellOff className="size-4" /> : <Bell className="size-4" />}</Button>}
             {admin ? <Button variant="danger" size="sm" onClick={() => navigate("admin")}><ShieldCheck className="size-4" /><span className="hidden sm:inline">Admin</span></Button>
               : <Button variant="secondary" size="sm" onClick={() => setAdminPrompt(true)}><Lock className="size-4" /><span className="hidden sm:inline">Admin Panel</span></Button>}
@@ -175,16 +207,17 @@ export function SafeSphereApp() {
         {view === "dashboard" && <Dashboard content={content} alerts={alerts} notices={notices} navigate={navigate} acknowledge={acknowledge} resolve={resolve} admin={admin} />}
         {view === "alerts" && <AlertsView alerts={alerts} acknowledge={acknowledge} resolve={resolve} admin={admin} />}
         {view === "notices" && <NoticesView notices={notices} />}
+        {view === "requests" && <RequestsView username={currentUser?.username ?? "admin"} requests={requests} setRequests={setRequests} toast={toast} />}
         {view === "aws" && <AwsView intro={content.awsIntro} />}
         {view === "team" && <TeamView content={content} />}
-        {view === "admin" && admin && <AdminView alerts={alerts} setAlerts={setAlerts} notices={notices} setNotices={setNotices} users={users} setUsers={setUsers} content={content} setContent={setContent} onLock={lockAdmin} toast={toast} />}
+        {view === "admin" && admin && <AdminView alerts={alerts} setAlerts={setAlerts} notices={notices} setNotices={setNotices} requests={requests} setRequests={setRequests} users={users} setUsers={setUsers} content={content} setContent={setContent} onLock={lockAdmin} toast={toast} />}
       </div>
       <footer className="relative border-t border-border px-4 py-8 text-center text-xs text-muted-foreground">
         <p className="font-semibold text-foreground">Made by Team {content.projectName}</p>
         <p className="mt-1">{content.team.map((m) => m.name).join(" · ")}</p>
         <p className="mt-3">All alerts are simulated for demonstration purposes.</p>
       </footer>
-      {adminModal}{toastLayer}
+      {adminModal}{toastLayer}{alertOverlay}
     </main>
   );
 }
@@ -205,10 +238,10 @@ function AuthScreen({ content, users, onLogin, onSignup, onOpenAdmin }: { conten
   return <div className="relative mx-auto grid min-h-screen max-w-6xl items-center gap-10 px-4 py-10 lg:grid-cols-[1.1fr_.9fr]">
     <section className="animate-enter">
       <Logo name={content.projectName} />
-      <div className="mt-10 inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary"><Sparkles className="size-3.5" /> Smart emergency alert platform</div>
+      <div className="mt-10 inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary"><Sparkles className="size-3.5" /> Smart campus alert platform</div>
       <h1 className="mt-5 font-display text-4xl font-bold leading-tight sm:text-6xl">Stay alert.<br /><span className="text-gradient">Stay safe.</span></h1>
       <p className="mt-5 max-w-lg text-base leading-7 text-muted-foreground">{content.projectInfo}</p>
-      <div className="mt-8 grid max-w-lg grid-cols-3 gap-3">{[[Siren, "Instant alerts"], [Megaphone, "Live notices"], [ShieldCheck, "Admin control"]].map(([Icon, label]) => { const I = Icon as typeof Siren; return <div key={label as string} className="glass-panel p-4 text-center"><I className="mx-auto size-5 text-primary" /><p className="mt-2 text-xs font-semibold">{label as string}</p></div>; })}</div>
+      <div className="mt-8 grid max-w-lg grid-cols-3 gap-3">{[[Siren, "Instant alerts"], [Megaphone, "Live notices"], [MessageSquarePlus, "Send requests"]].map(([Icon, label]) => { const I = Icon as typeof Siren; return <div key={label as string} className="glass-panel p-4 text-center"><I className="mx-auto size-5 text-primary" /><p className="mt-2 text-xs font-semibold">{label as string}</p></div>; })}</div>
     </section>
     <section className="glass-modal animate-enter p-6 sm:p-8">
       <div className="mb-6 grid grid-cols-2 rounded-md border border-border bg-input p-1">{(["login", "signup"] as const).map((m) => <button key={m} onClick={() => { setMode(m); setError(""); }} className={`h-9 rounded text-sm font-semibold transition ${mode === m ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>{m === "login" ? "Sign in" : "Create account"}</button>)}</div>
@@ -271,7 +304,7 @@ function Dashboard({ content, alerts, notices, navigate, acknowledge, resolve, a
         <div className="mt-6 flex flex-wrap gap-3"><Button variant="danger" onClick={() => navigate("alerts")}><Siren className="size-4" /> View active alerts</Button><Button onClick={() => navigate("notices")}><Megaphone className="size-4" /> Notices</Button></div>
       </div>
     </section>
-    <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <section className="stagger mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <Metric icon={<AlertTriangle className="size-5" />} label="Active alerts" value={String(active.length)} detail="Currently in progress" tone="metric-danger" />
       <Metric icon={<CheckCircle2 className="size-5" />} label="Response rate" value={`${aud ? Math.round((ack / aud) * 100) : 0}%`} detail="People marked safe" tone="metric-success" />
       <Metric icon={<Users className="size-5" />} label="People reached" value={String(aud)} detail="Across active alerts" tone="metric-info" />
@@ -281,7 +314,7 @@ function Dashboard({ content, alerts, notices, navigate, acknowledge, resolve, a
       <div className="glass-panel p-5"><div className="mb-4 flex items-center justify-between"><h2 className="font-bold">Alert activity today</h2><Activity className="size-4 text-primary" /></div>
         <div className="h-64"><ResponsiveContainer width="100%" height="100%"><AreaChart data={chartData}><defs><linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--primary)" stopOpacity={0.5} /><stop offset="100%" stopColor="var(--primary)" stopOpacity={0} /></linearGradient><linearGradient id="g2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--emergency)" stopOpacity={0.5} /><stop offset="100%" stopColor="var(--emergency)" stopOpacity={0} /></linearGradient></defs><CartesianGrid stroke="var(--chart-grid)" vertical={false} /><XAxis dataKey="time" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} /><YAxis stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} /><Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, color: "var(--foreground)" }} /><Area type="monotone" dataKey="response" stroke="var(--primary)" fill="url(#g1)" strokeWidth={2} name="Response %" /><Area type="monotone" dataKey="alerts" stroke="var(--emergency)" fill="url(#g2)" strokeWidth={2} name="Alerts" /></AreaChart></ResponsiveContainer></div>
       </div>
-      <div className="glass-panel p-5"><h2 className="mb-4 font-bold">Coverage</h2><div className="grid gap-3">{[[Building2, "College", "4 zones"], [Factory, "Factory", "3 zones"], [HeartPulse, "Hospital", "2 zones"], [Home, "Homes", "3 zones"]].map(([I, l, c]) => { const Icon = I as typeof Home; return <div key={l as string} className="flex items-center gap-3 rounded-md border border-border bg-input/50 p-3"><span className="metric-icon metric-primary"><Icon className="size-4" /></span><span className="flex-1 text-sm font-semibold">{l as string}</span><span className="text-xs text-muted-foreground">{c as string}</span></div>; })}</div></div>
+      <div className="glass-panel p-5"><h2 className="mb-4 font-bold">Campus coverage</h2><div className="grid gap-3">{[[Building2, "Academic blocks", "4 zones"], [FlaskConical, "Labs", "3 zones"], [Library, "Library", "2 floors"], [BedDouble, "Hostels", "3 blocks"]].map(([I, l, c]) => { const Icon = I as typeof Home; return <div key={l as string} className="flex items-center gap-3 rounded-md border border-border bg-input/50 p-3"><span className="metric-icon metric-primary"><Icon className="size-4" /></span><span className="flex-1 text-sm font-semibold">{l as string}</span><span className="text-xs text-muted-foreground">{c as string}</span></div>; })}</div></div>
     </section>
     <div className="mb-4 flex items-center justify-between"><h2 className="font-display text-xl font-bold">Active alerts</h2><Button size="sm" variant="ghost" onClick={() => navigate("alerts")}>View all</Button></div>
     <div className="grid gap-4 md:grid-cols-2">{active.length ? active.slice(0, 4).map((a) => <AlertCard key={a.id} alert={a} acknowledge={acknowledge} resolve={resolve} admin={admin} />) : <p className="glass-panel p-6 text-sm text-muted-foreground">No active alerts. All clear.</p>}</div>
@@ -294,7 +327,7 @@ function AlertsView({ alerts, acknowledge, resolve, admin }: { alerts: AlertReco
   return <div>
     <SectionHeading eyebrow="Alerts" title="All emergency alerts" description="Track every alert by severity, location and response. All alerts are simulated." />
     <div className="glass-panel mb-5 flex flex-col gap-3 p-3 md:flex-row md:items-center"><label className="flex h-10 flex-1 items-center gap-2 rounded-md border border-border bg-input px-3"><Search className="size-4 text-muted-foreground" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search alerts…" className="w-full bg-transparent text-sm outline-none" /></label><div className="flex flex-wrap gap-1">{["All", "Active", "Resolved", "Critical", "High", "Medium", "Low"].map((f) => <Button key={f} size="sm" variant={filter === f ? "primary" : "ghost"} onClick={() => setFilter(f)}>{f}</Button>)}</div></div>
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{list.map((a) => <AlertCard key={a.id} alert={a} acknowledge={acknowledge} resolve={resolve} admin={admin} />)}{!list.length && <p className="text-sm text-muted-foreground">No alerts match your filters.</p>}</div>
+    <div className="stagger grid gap-4 md:grid-cols-2 xl:grid-cols-3">{list.map((a) => <AlertCard key={a.id} alert={a} acknowledge={acknowledge} resolve={resolve} admin={admin} />)}{!list.length && <p className="text-sm text-muted-foreground">No alerts match your filters.</p>}</div>
   </div>;
 }
 
@@ -314,22 +347,22 @@ function TeamView({ content }: { content: SiteContent }) {
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{content.team.map((m, i) => <div key={i} className="glass-panel hover-lift relative overflow-hidden p-6 text-center"><div className="mx-auto grid size-20 place-items-center rounded-full bg-primary/15 font-display text-2xl font-bold text-primary ring-1 ring-primary/30">{m.name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase()}</div><h3 className="mt-4 text-lg font-bold">{m.name}</h3><p className="mt-1 text-sm text-muted-foreground">{m.role}</p></div>)}</div></div>;
 }
 
-function AdminView({ alerts, setAlerts, notices, setNotices, users, setUsers, content, setContent, onLock, toast }: {
-  alerts: AlertRecord[]; setAlerts: React.Dispatch<React.SetStateAction<AlertRecord[]>>; notices: Notice[]; setNotices: React.Dispatch<React.SetStateAction<Notice[]>>;
+function AdminView({ alerts, setAlerts, notices, setNotices, requests, setRequests, users, setUsers, content, setContent, onLock, toast }: {
+  alerts: AlertRecord[]; setAlerts: React.Dispatch<React.SetStateAction<AlertRecord[]>>; notices: Notice[]; setNotices: React.Dispatch<React.SetStateAction<Notice[]>>; requests: RequestRecord[]; setRequests: React.Dispatch<React.SetStateAction<RequestRecord[]>>;
   users: AppUser[]; setUsers: React.Dispatch<React.SetStateAction<AppUser[]>>; content: SiteContent; setContent: React.Dispatch<React.SetStateAction<SiteContent>>; onLock: () => void; toast: (t: Omit<Toast, "id">) => void;
 }) {
   const [tab, setTab] = useState("alert");
   const [a, setA] = useState({ title: "", message: "", location: "", severity: "High" as Severity, audience: 100 });
   const [n, setN] = useState({ title: "", body: "" });
   const [draft, setDraft] = useState(content);
-  const tabs = [["alert", Siren, "Send alert"], ["notice", Megaphone, "Post notice"], ["users", Users, `Users (${users.length})`], ["manage", AlertTriangle, "Manage alerts"], ["content", PencilLine, "Edit content"]] as const;
+  const tabs = [["alert", Siren, "Send alert"], ["notice", Megaphone, "Post notice"], ["requests", Inbox, `Requests (${requests.filter((r) => r.status === "Open").length})`], ["users", Users, `Users (${users.length})`], ["manage", AlertTriangle, "Manage alerts"], ["content", PencilLine, "Edit content"]] as const;
   return <div>
     <SectionHeading eyebrow="Admin Panel" title="Control center" description="Send alerts, publish notices, manage users and edit website content." action={<Button onClick={onLock}><Lock className="size-4" /> Lock admin</Button>} />
     <div className="glass-panel mb-5 flex gap-1 overflow-x-auto p-2">{tabs.map(([k, Icon, l]) => <Button key={k} size="sm" variant={tab === k ? "primary" : "ghost"} onClick={() => setTab(k)}><Icon className="size-4" />{l}</Button>)}</div>
     <div key={tab} className="animate-enter">
     {tab === "alert" && <form className="glass-panel grid gap-4 p-5 sm:p-6 md:grid-cols-2" onSubmit={(e) => { e.preventDefault(); if (!a.title.trim() || !a.message.trim()) return; setAlerts((c) => [createSimulatedAlert({ ...a, title: a.title.trim().slice(0, 80), message: a.message.trim().slice(0, 400), location: a.location.trim().slice(0, 80) || "All locations" }, 2050 + c.length + 1), ...c]); setA({ ...a, title: "", message: "" }); }}>
       <Field label="Alert title" required maxLength={80} value={a.title} onChange={(e) => setA({ ...a, title: e.target.value })} placeholder="e.g. Fire in Block C" />
-      <Field label="Location" maxLength={80} value={a.location} onChange={(e) => setA({ ...a, location: e.target.value })} placeholder="e.g. College · Block C" />
+      <Field label="Location" maxLength={80} value={a.location} onChange={(e) => setA({ ...a, location: e.target.value })} placeholder="e.g. Block C · Second floor" />
       <div className="md:col-span-2"><TextArea label="Message" required maxLength={400} value={a.message} onChange={(e) => setA({ ...a, message: e.target.value })} placeholder="What should people do?" /></div>
       <div className="grid gap-2 text-xs font-medium text-muted-foreground">Severity<div className="grid grid-cols-4 gap-2">{(["Critical", "High", "Medium", "Low"] as Severity[]).map((s) => <button type="button" key={s} onClick={() => setA({ ...a, severity: s })} className={`h-10 rounded-md border text-xs font-bold transition ${a.severity === s ? severityStyle[s] : "border-border text-muted-foreground"}`}>{s}</button>)}</div></div>
       <Field label="Audience size" type="number" min={1} max={100000} value={a.audience} onChange={(e) => setA({ ...a, audience: Math.max(1, Number(e.target.value) || 1) })} />
@@ -343,6 +376,7 @@ function AdminView({ alerts, setAlerts, notices, setNotices, users, setUsers, co
       </form>
       <div className="grid content-start gap-3">{notices.map((x) => <div key={x.id} className="glass-panel flex items-start gap-3 p-4"><div className="min-w-0 flex-1"><p className="font-semibold">{x.title}</p><p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{x.body}</p></div><Button size="icon" variant="ghost" aria-label="Delete notice" onClick={() => setNotices((c) => c.filter((y) => y.id !== x.id))}><Trash2 className="size-4" /></Button></div>)}</div>
     </div>}
+    {tab === "requests" && <AdminRequests requests={requests} setRequests={setRequests} toast={toast} />}
     {tab === "users" && <div className="glass-panel overflow-hidden">{users.length ? users.map((u) => <div key={u.username} className="flex flex-wrap items-center gap-3 border-b border-border p-4 last:border-0"><span className="grid size-10 place-items-center rounded-full bg-primary/15 font-bold text-primary">{(u.username[0] ?? "?").toUpperCase()}</span><div className="flex-1"><p className="font-semibold">@{u.username}</p><p className="text-xs text-muted-foreground">Joined {timeAgo(u.createdAt)}</p></div><span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase ${u.blocked ? "bg-emergency-muted text-emergency-soft" : "bg-success-muted text-success"}`}>{u.blocked ? "Blocked" : "Active"}</span><Button size="sm" onClick={() => { setUsers((c) => c.map((x) => x.username === u.username ? { ...x, blocked: !x.blocked } : x)); toast({ title: u.blocked ? "User unblocked" : "User blocked", body: `@${u.username}`, tone: "notice" }); }}>{u.blocked ? <><UserCheck className="size-4" /> Unblock</> : <><UserX className="size-4" /> Block</>}</Button><Button size="sm" variant="danger" onClick={() => { if (confirm(`Remove @${u.username}?`)) setUsers((c) => c.filter((x) => x.username !== u.username)); }}><Trash2 className="size-4" /> Remove</Button></div>) : <p className="p-6 text-sm text-muted-foreground">No users have signed up yet.</p>}</div>}
     {tab === "manage" && <div className="glass-panel overflow-hidden">{alerts.map((x) => <div key={x.id} className="flex flex-wrap items-center gap-3 border-b border-border p-4 last:border-0"><SeverityPill severity={x.severity} /><div className="min-w-0 flex-1"><p className="truncate font-semibold">{x.title}</p><p className="text-xs text-muted-foreground">{x.location} · {x.status} · {timeAgo(x.createdAt)}</p></div>{x.status === "Active" && <Button size="sm" onClick={() => setAlerts((c) => c.map((y) => y.id === x.id ? { ...y, status: "Resolved" } : y))}>Resolve</Button>}<Button size="icon" variant="ghost" aria-label="Delete alert" onClick={() => setAlerts((c) => c.filter((y) => y.id !== x.id))}><Trash2 className="size-4" /></Button></div>)}</div>}
     {tab === "content" && <form className="glass-panel grid gap-4 p-5 sm:p-6" onSubmit={(e) => { e.preventDefault(); setContent(draft); toast({ title: "Saved", body: "Website content updated.", tone: "notice" }); }}>
