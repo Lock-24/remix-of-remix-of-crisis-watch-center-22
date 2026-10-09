@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { acknowledgementRate, createSimulatedAlert, hashPassword, isAdminPassword, loginUser, validateSignup } from "@/lib/safesphere-data";
+import { type AppUser, acknowledgementRate, createSimulatedAlert, hashPassword, isAdminPassword, loginUser, validateSignup } from "@/lib/safesphere-data";
 
 describe("SafeSphere rules", () => {
   it("labels a new alert as simulated and active", () => {
@@ -19,10 +19,10 @@ describe("SafeSphere rules", () => {
   });
 
   it("blocked users cannot log in", async () => {
-    const users = [{ username: "ravi", passwordHash: await hashPassword("secret1"), blocked: true, createdAt: 0 }];
+    const users: AppUser[] = [{ username: "ravi", passwordHash: await hashPassword("secret1"), blocked: true, createdAt: 0 }];
     const res = await loginUser(users, "ravi", "secret1");
     expect(res.ok).toBe(false);
-    const ok = await loginUser([{ ...users[0], blocked: false }], "Ravi", "secret1");
+    const ok = await loginUser(users.map((u) => ({ ...u, blocked: false })), "Ravi", "secret1");
     expect(ok.ok).toBe(true);
   });
 
