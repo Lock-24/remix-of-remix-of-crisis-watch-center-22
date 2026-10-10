@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Button } from "./Button";
+import { CampusBackground } from "./CampusBackground";
 import {
   acknowledgementRate, createSimulatedAlert, defaultAlerts, defaultContent, defaultNotices,
   hashPassword, isAdminPassword, loginUser, normalizeUsername, timeAgo, validateSignup,
@@ -22,7 +23,7 @@ const chartData = [
 ];
 const navItems = [
   { key: "dashboard", label: "Dashboard" }, { key: "alerts", label: "Alerts" },
-  { key: "notices", label: "Notices" }, { key: "requests", label: "Requests" }, { key: "aws", label: "About AWS" }, { key: "team", label: "Team" },
+  { key: "notices", label: "Notices" }, { key: "requests", label: "Requests" }, { key: "aws", label: "About AWS" },
 ];
 const severityStyle: Record<Severity, string> = {
   Critical: "border-emergency/25 bg-emergency-muted text-emergency-soft",
@@ -52,7 +53,7 @@ function SeverityPill({ severity }: { severity: Severity }) {
   return <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[10px] font-bold uppercase tracking-wide ${severityStyle[severity]}`}><span className="size-1.5 rounded-full bg-current" />{severity}</span>;
 }
 function Blobs() {
-  return <div aria-hidden className="pointer-events-none fixed inset-0 overflow-hidden"><div className="blob blob-a" /><div className="blob blob-b" /><div className="blob blob-c" /><div className="ambient-grid absolute inset-0" /></div>;
+  return <CampusBackground />;
 }
 function Logo({ name }: { name: string }) {
   return <span className="flex items-center gap-3"><span className="grid size-9 place-items-center rounded-md bg-primary text-primary-foreground shadow-signal"><Shield className="size-5" /></span><span className="text-left"><span className="block text-base font-bold">{name}</span><span className="block text-[10px] uppercase tracking-widest text-muted-foreground">Campus safety</span></span></span>;
@@ -72,7 +73,7 @@ export function SafeSphereApp() {
   const [permission, setPermission] = useState<NotificationPermission | "unsupported">("default");
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [requests, setRequests] = useState<RequestRecord[]>([]);
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [theme, setTheme] = useState<"dark" | "light">("light");
   const [bigAlert, setBigAlert] = useState<AlertRecord | null>(null);
   const seen = useRef<{ alerts: Set<string>; notices: Set<string> }>({ alerts: new Set(), notices: new Set() });
 
@@ -88,7 +89,7 @@ export function SafeSphereApp() {
     setAlerts(a); setNotices(n); setUsers(load(KEYS.users, [])); setContent(load(KEYS.content, defaultContent));
     setSession(load<string | null>(KEYS.session, null));
     setRequests(load(KEYS.requests, []));
-    setTheme(load<"dark" | "light">(KEYS.theme, "dark"));
+    setTheme(load<"dark" | "light">(KEYS.theme, "light"));
     setAdmin(window.sessionStorage.getItem(ADMIN_SESSION) === "1");
     setPermission(typeof Notification === "undefined" ? "unsupported" : Notification.permission);
     setHydrated(true);
@@ -174,7 +175,7 @@ export function SafeSphereApp() {
       <AuthScreen content={content} users={users} onOpenAdmin={() => setAdminPrompt(true)}
         onLogin={(name) => { setSession(name); setView("dashboard"); if (permission === "default") void requestPermission(); }}
         onSignup={(u) => { setUsers((c) => [...c, u]); setSession(u.username); if (permission === "default") void requestPermission(); }} />
-      {adminModal}{toastLayer}{alertOverlay}</main>;
+      <TeamFooter content={content} />{adminModal}{toastLayer}{alertOverlay}</main>;
   }
 
   const items = admin ? [...navItems, { key: "admin", label: "Admin Panel" }] : navItems;
@@ -183,8 +184,8 @@ export function SafeSphereApp() {
     <main className="relative min-h-screen bg-background text-foreground">
       <Blobs />
       <header className="sticky top-0 z-40 border-b border-border/80 bg-background/60 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-[1480px] items-center justify-between gap-3 px-4 sm:px-6">
-          <button onClick={() => navigate("dashboard")} aria-label="Go to dashboard"><Logo name={content.projectName} /></button>
+        <div className="mx-auto flex h-16 max-w-[1280px] items-center justify-between gap-3 px-4 sm:px-6">
+          <Button variant="ghost" className="h-auto px-0 text-foreground" onClick={() => navigate("dashboard")} aria-label="Go to dashboard"><Logo name={content.projectName} /></Button>
           <nav className="hidden items-center gap-1 lg:flex" aria-label="Main navigation">
             {items.map(({ key, label }) => <Button key={key} size="sm" variant={view === key ? "secondary" : "ghost"} onClick={() => navigate(key)}>{label}</Button>)}
           </nav>
@@ -201,22 +202,17 @@ export function SafeSphereApp() {
         {menuOpen && <nav className="glass-panel animate-enter mx-4 mb-3 grid gap-1 p-2 lg:hidden">{items.map(({ key, label }) => <Button key={key} variant="ghost" className="justify-start" onClick={() => navigate(key)}>{label}</Button>)}</nav>}
       </header>
 
-      {permission === "default" && <div className="relative mx-auto mt-4 max-w-[1480px] px-4 sm:px-6"><div className="glass-panel flex flex-col items-start justify-between gap-3 p-4 sm:flex-row sm:items-center"><p className="flex items-center gap-3 text-sm"><BellRing className="size-5 text-primary" /> Turn on notifications to get instant alerts and notices from the admin.</p><Button variant="primary" size="sm" onClick={requestPermission}>Allow notifications</Button></div></div>}
+      {permission === "default" && <div className="relative mx-auto mt-4 max-w-[1280px] px-4 sm:px-6"><div className="glass-panel flex flex-col items-start justify-between gap-3 p-4 sm:flex-row sm:items-center"><p className="flex items-center gap-3 text-sm"><BellRing className="size-5 text-primary" /> Turn on notifications to get instant alerts and notices from the admin.</p><Button variant="primary" size="sm" onClick={requestPermission}>Allow notifications</Button></div></div>}
 
-      <div key={view} className="animate-enter relative mx-auto max-w-[1480px] px-4 py-6 sm:px-6 sm:py-8">
+      <div key={view} className="animate-enter relative mx-auto max-w-[1280px] px-4 py-6 sm:px-6 sm:py-8">
         {view === "dashboard" && <Dashboard content={content} alerts={alerts} notices={notices} navigate={navigate} acknowledge={acknowledge} resolve={resolve} admin={admin} />}
         {view === "alerts" && <AlertsView alerts={alerts} acknowledge={acknowledge} resolve={resolve} admin={admin} />}
         {view === "notices" && <NoticesView notices={notices} />}
         {view === "requests" && <RequestsView username={currentUser?.username ?? "admin"} requests={requests} setRequests={setRequests} toast={toast} />}
         {view === "aws" && <AwsView intro={content.awsIntro} />}
-        {view === "team" && <TeamView content={content} />}
         {view === "admin" && admin && <AdminView alerts={alerts} setAlerts={setAlerts} notices={notices} setNotices={setNotices} requests={requests} setRequests={setRequests} users={users} setUsers={setUsers} content={content} setContent={setContent} onLock={lockAdmin} toast={toast} />}
       </div>
-      <footer className="relative border-t border-border px-4 py-8 text-center text-xs text-muted-foreground">
-        <p className="font-semibold text-foreground">Made by Team {content.projectName}</p>
-        <p className="mt-1">{content.team.map((m) => m.name).join(" · ")}</p>
-        <p className="mt-3">All alerts are simulated for demonstration purposes.</p>
-      </footer>
+      <TeamFooter content={content} />
       {adminModal}{toastLayer}{alertOverlay}
     </main>
   );
@@ -239,7 +235,7 @@ function AuthScreen({ content, users, onLogin, onSignup, onOpenAdmin }: { conten
     <section className="animate-enter">
       <Logo name={content.projectName} />
       <div className="mt-10 inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary"><Sparkles className="size-3.5" /> Smart campus alert platform</div>
-      <h1 className="mt-5 font-display text-4xl font-bold leading-tight sm:text-6xl">Stay alert.<br /><span className="text-gradient">Stay safe.</span></h1>
+      <h1 className="mt-5 font-display text-4xl font-bold leading-tight sm:text-6xl">{content.projectName}<br /><span className="text-primary">Campus safety.</span></h1>
       <p className="mt-5 max-w-lg text-base leading-7 text-muted-foreground">{content.projectInfo}</p>
       <div className="mt-8 grid max-w-lg grid-cols-3 gap-3">{[[Siren, "Instant alerts"], [Megaphone, "Live notices"], [MessageSquarePlus, "Send requests"]].map(([Icon, label]) => { const I = Icon as typeof Siren; return <div key={label as string} className="glass-panel p-4 text-center"><I className="mx-auto size-5 text-primary" /><p className="mt-2 text-xs font-semibold">{label as string}</p></div>; })}</div>
     </section>
@@ -276,12 +272,12 @@ function SectionHeading({ eyebrow, title, description, action }: { eyebrow: stri
   return <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-primary">{eyebrow}</p><h1 className="font-display text-2xl font-bold sm:text-3xl">{title}</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{description}</p></div>{action}</div>;
 }
 function Metric({ icon, label, value, detail, tone }: { icon: React.ReactNode; label: string; value: string; detail: string; tone: string }) {
-  return <div className="glass-panel hover-lift p-5"><div className="flex items-center justify-between"><p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p><span className={`metric-icon ${tone}`}>{icon}</span></div><p className="mt-3 font-display text-3xl font-bold">{value}</p><p className="mt-1 text-xs text-muted-foreground">{detail}</p></div>;
+  return <div className="glass-panel hover-lift p-5"><div className="flex items-center justify-between"><p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p><span className={`metric-icon ${tone}`}>{icon}</span></div><p className="mt-3 font-display text-3xl font-semibold">{value}</p><p className="mt-1 text-xs text-muted-foreground">{detail}</p></div>;
 }
 
 function AlertCard({ alert, acknowledge, resolve, admin }: { alert: AlertRecord; acknowledge: (id: string) => void; resolve: (id: string) => void; admin: boolean }) {
   const rate = acknowledgementRate(alert);
-  return <article className={`glass-panel hover-lift p-5 ${alert.status === "Active" && alert.severity === "Critical" ? "alert-glow" : ""}`}>
+  return <article className="glass-panel hover-lift p-5">
     <div className="flex flex-wrap items-center gap-2"><SeverityPill severity={alert.severity} /><span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase ${alert.status === "Active" ? "bg-emergency-muted text-emergency-soft" : "bg-success-muted text-success"}`}>{alert.status}</span><span className="rounded-full border border-border px-2 py-1 text-[10px] font-bold uppercase text-muted-foreground">Simulated</span><span className="ml-auto text-xs text-muted-foreground">{timeAgo(alert.createdAt)}</span></div>
     <h3 className="mt-3 text-lg font-bold">{alert.title}</h3>
     <p className="mt-1 text-sm leading-6 text-muted-foreground">{alert.message}</p>
@@ -295,28 +291,26 @@ function Dashboard({ content, alerts, notices, navigate, acknowledge, resolve, a
   const active = alerts.filter((a) => a.status === "Active");
   const aud = active.reduce((s, a) => s + a.audience, 0), ack = active.reduce((s, a) => s + a.acknowledged, 0);
   return <div>
-    <section className="glass-panel relative mb-6 overflow-hidden p-6 sm:p-10">
-      <div className="emergency-line absolute inset-x-0 top-0 h-px" />
-      <div className="relative max-w-3xl">
-        <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary"><Radio className="size-3.5" /> Live command center</div>
-        <h1 className="font-display text-3xl font-bold leading-tight sm:text-5xl">{content.projectTagline}</h1>
-        <p className="mt-4 max-w-xl text-sm leading-7 text-muted-foreground sm:text-base">{content.projectInfo}</p>
-        <div className="mt-6 flex flex-wrap gap-3"><Button variant="danger" onClick={() => navigate("alerts")}><Siren className="size-4" /> View active alerts</Button><Button onClick={() => navigate("notices")}><Megaphone className="size-4" /> Notices</Button></div>
+    <section className="mb-8 flex flex-col justify-between gap-5 border-b border-border pb-7 md:flex-row md:items-end">
+      <div><p className="mb-3 flex items-center gap-2 text-xs font-semibold text-primary"><span className="size-2 rounded-full bg-primary" /> CAMPUS SAFETY OVERVIEW</p>
+        <h1 className="font-display text-3xl font-semibold sm:text-4xl">Your campus, in safe hands.</h1>
+        <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">{content.projectTagline}</p>
       </div>
+      <div className="flex flex-wrap gap-2"><Button onClick={() => navigate("requests")}><MessageSquarePlus className="size-4" /> Send a request</Button><Button variant="primary" onClick={() => navigate("alerts")}><Siren className="size-4" /> View alerts</Button></div>
     </section>
     <section className="stagger mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <Metric icon={<AlertTriangle className="size-5" />} label="Active alerts" value={String(active.length)} detail="Currently in progress" tone="metric-danger" />
       <Metric icon={<CheckCircle2 className="size-5" />} label="Response rate" value={`${aud ? Math.round((ack / aud) * 100) : 0}%`} detail="People marked safe" tone="metric-success" />
-      <Metric icon={<Users className="size-5" />} label="People reached" value={String(aud)} detail="Across active alerts" tone="metric-info" />
+      <Metric icon={<Users className="size-5" />} label="Alert audience" value={String(aud)} detail="Simulated campus audience" tone="metric-info" />
       <Metric icon={<Megaphone className="size-5" />} label="Notices" value={String(notices.length)} detail="Published by admin" tone="metric-primary" />
     </section>
     <section className="mb-6 grid gap-5 lg:grid-cols-[1.4fr_.6fr]">
-      <div className="glass-panel p-5"><div className="mb-4 flex items-center justify-between"><h2 className="font-bold">Alert activity today</h2><Activity className="size-4 text-primary" /></div>
-        <div className="h-64"><ResponsiveContainer width="100%" height="100%"><AreaChart data={chartData}><defs><linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--primary)" stopOpacity={0.5} /><stop offset="100%" stopColor="var(--primary)" stopOpacity={0} /></linearGradient><linearGradient id="g2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--emergency)" stopOpacity={0.5} /><stop offset="100%" stopColor="var(--emergency)" stopOpacity={0} /></linearGradient></defs><CartesianGrid stroke="var(--chart-grid)" vertical={false} /><XAxis dataKey="time" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} /><YAxis stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} /><Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, color: "var(--foreground)" }} /><Area type="monotone" dataKey="response" stroke="var(--primary)" fill="url(#g1)" strokeWidth={2} name="Response %" /><Area type="monotone" dataKey="alerts" stroke="var(--emergency)" fill="url(#g2)" strokeWidth={2} name="Alerts" /></AreaChart></ResponsiveContainer></div>
+      <div className="min-w-0 border-y border-border py-5"><div className="mb-4 flex items-center justify-between"><div><h2 className="font-semibold">Response overview</h2><p className="mt-1 text-xs text-muted-foreground">Sample campus activity · Simulated</p></div><span className="flex items-center gap-2 text-xs text-primary"><span className="size-2 rounded-full bg-primary" /> Response rate</span></div>
+        <div className="h-56"><ResponsiveContainer width="100%" height="100%"><AreaChart data={chartData}><defs><linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--primary)" stopOpacity={0.5} /><stop offset="100%" stopColor="var(--primary)" stopOpacity={0} /></linearGradient><linearGradient id="g2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--info)" stopOpacity={0.5} /><stop offset="100%" stopColor="var(--info)" stopOpacity={0} /></linearGradient></defs><CartesianGrid stroke="var(--chart-grid)" vertical={false} /><XAxis dataKey="time" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} /><YAxis stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} /><Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, color: "var(--foreground)" }} /><Area type="monotone" dataKey="response" stroke="var(--primary)" fill="url(#g1)" strokeWidth={2} name="Response %" /><Area type="monotone" dataKey="alerts" stroke="var(--info)" fill="url(#g2)" strokeWidth={2} name="Alerts" /></AreaChart></ResponsiveContainer></div>
       </div>
-      <div className="glass-panel p-5"><h2 className="mb-4 font-bold">Campus coverage</h2><div className="grid gap-3">{[[Building2, "Academic blocks", "4 zones"], [FlaskConical, "Labs", "3 zones"], [Library, "Library", "2 floors"], [BedDouble, "Hostels", "3 blocks"]].map(([I, l, c]) => { const Icon = I as typeof Home; return <div key={l as string} className="flex items-center gap-3 rounded-md border border-border bg-input/50 p-3"><span className="metric-icon metric-primary"><Icon className="size-4" /></span><span className="flex-1 text-sm font-semibold">{l as string}</span><span className="text-xs text-muted-foreground">{c as string}</span></div>; })}</div></div>
+      <div className="border-y border-border py-5"><h2 className="mb-1 font-semibold">Around campus</h2><p className="mb-4 text-xs text-muted-foreground">Campus locations · Demo coverage</p><div className="grid gap-3">{[[Building2, "Academic blocks", "4 zones"], [FlaskConical, "Labs", "3 zones"], [Library, "Library", "2 floors"], [BedDouble, "Hostels", "3 blocks"]].map(([I, l, c]) => { const Icon = I as typeof Home; return <div key={l as string} className="flex items-center gap-3 border-b border-border py-3 last:border-0"><span className="metric-icon metric-primary"><Icon className="size-4" /></span><span className="flex-1 text-sm font-semibold">{l as string}</span><span className="text-xs text-muted-foreground">{c as string}</span></div>; })}</div></div>
     </section>
-    <div className="mb-4 flex items-center justify-between"><h2 className="font-display text-xl font-bold">Active alerts</h2><Button size="sm" variant="ghost" onClick={() => navigate("alerts")}>View all</Button></div>
+    <div className="mb-4 flex items-center justify-between"><h2 className="font-display text-xl font-semibold">Active alerts</h2><Button size="sm" variant="ghost" onClick={() => navigate("alerts")}>View all</Button></div>
     <div className="grid gap-4 md:grid-cols-2">{active.length ? active.slice(0, 4).map((a) => <AlertCard key={a.id} alert={a} acknowledge={acknowledge} resolve={resolve} admin={admin} />) : <p className="glass-panel p-6 text-sm text-muted-foreground">No active alerts. All clear.</p>}</div>
   </div>;
 }
@@ -342,9 +336,16 @@ function AwsView({ intro }: { intro: string }) {
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{services.map(([Icon, t, d]) => <div key={t} className="glass-panel hover-lift p-5"><span className="metric-icon metric-primary"><Icon className="size-5" /></span><h3 className="mt-4 font-bold">{t}</h3><p className="mt-1 text-sm leading-6 text-muted-foreground">{d}</p></div>)}</div></div>;
 }
 
-function TeamView({ content }: { content: SiteContent }) {
-  return <div><SectionHeading eyebrow="Made by" title={`Team ${content.projectName}`} description="The people who designed and built this platform." />
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{content.team.map((m, i) => <div key={i} className="glass-panel hover-lift relative overflow-hidden p-6 text-center"><div className="mx-auto grid size-20 place-items-center rounded-full bg-primary/15 font-display text-2xl font-bold text-primary ring-1 ring-primary/30">{m.name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase()}</div><h3 className="mt-4 text-lg font-bold">{m.name}</h3><p className="mt-1 text-sm text-muted-foreground">{m.role}</p></div>)}</div></div>;
+function TeamFooter({ content }: { content: SiteContent }) {
+  return <footer className="relative mt-10 border-t border-border bg-card/40">
+    <div className="mx-auto max-w-[1280px] px-4 py-8 sm:px-6">
+      <div className="flex flex-col justify-between gap-8 lg:flex-row">
+        <div className="lg:max-w-xs"><Logo name={content.projectName} /><p className="mt-4 text-xs leading-6 text-muted-foreground">Made by {content.team[0]?.name ?? "the SafeSphere team"}<br />A safer campus. A shared responsibility.</p></div>
+        <div className="grid grid-cols-2 gap-x-8 gap-y-5 sm:grid-cols-4 lg:gap-x-10">{content.team.map((m, i) => <div key={i}><p className="text-sm font-semibold">{m.name}</p><p className="mt-1 max-w-36 text-xs leading-5 text-muted-foreground">{m.role}</p></div>)}</div>
+      </div>
+      <div className="mt-8 flex flex-wrap justify-between gap-2 border-t border-border pt-4 text-[11px] text-muted-foreground"><span>© {new Date().getFullYear()} {content.projectName} · Campus safety</span><span>Demonstration only · All alerts are simulated</span></div>
+    </div>
+  </footer>;
 }
 
 function AdminView({ alerts, setAlerts, notices, setNotices, requests, setRequests, users, setUsers, content, setContent, onLock, toast }: {

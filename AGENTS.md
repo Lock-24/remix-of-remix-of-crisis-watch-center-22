@@ -10,3 +10,5 @@
 <!-- LOVABLE:END -->
 
 - Keep SafeSphere as a client-side demo with localStorage persistence because the user explicitly requested no API or external notification integration.
+- Keep the shared team presentation in the footer so editable member details appear consistently without a separate Team view.
+- Keep ambient canvas rendering isolated in CampusBackground, throttled and reduced-motion aware, to preserve smooth interaction without browser-only imports in SSR.

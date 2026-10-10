@@ -4,10 +4,10 @@ import { SafeSphereApp } from "@/components/safesphere/SafeSphereApp";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "SafeSphere — Emergency Command Center" },
-      { name: "description", content: "Emergency alerts, notices and response tracking for colleges, offices, factories, hospitals and homes." },
-      { property: "og:title", content: "SafeSphere — Emergency Command Center" },
-      { property: "og:description", content: "Professional emergency alert platform with admin notices and instant notifications." },
+      { title: "SafeSphere — Campus Safety" },
+      { name: "description", content: "College campus safety demo with simulated alerts, student requests, notices and acknowledgement tracking." },
+      { property: "og:title", content: "SafeSphere — Campus Safety" },
+      { property: "og:description", content: "A professional college safety demo with simulated emergency alerts, campus notices and student requests." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
