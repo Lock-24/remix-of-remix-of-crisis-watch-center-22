@@ -113,6 +113,9 @@
   --glass-shadow: 0 4px 18px oklch(0.05 0.005 200 / 10%);
   --chart-grid: oklch(0.7 0.01 200 / 12%);
   --signal-stroke: oklch(0.7 0.1 180 / 9%);
+  --campus-image-opacity: 0.38;
+  --campus-shade: linear-gradient(90deg, var(--background) 12%, color-mix(in oklab, var(--background) 94%, transparent) 38%, color-mix(in oklab, var(--background) 25%, transparent) 100%);
+  --campus-auth-shade: linear-gradient(90deg, color-mix(in oklab, var(--background) 97%, transparent), color-mix(in oklab, var(--background) 84%, transparent));
 }
 
 html.light {
@@ -146,6 +149,7 @@ html.light {
   --glass-shadow: 0 4px 20px oklch(0.25 0.02 190 / 4%);
   --chart-grid: oklch(0.4 0.01 190 / 10%);
   --signal-stroke: oklch(0.54 0.085 185 / 7%);
+  --campus-image-opacity: 1;
 }
 
 html.theme-anim, html.theme-anim * { transition: background-color 400ms ease, color 400ms ease, border-color 400ms ease !important; }
@@ -232,3 +236,43 @@ html.theme-anim, html.theme-anim * { transition: background-color 400ms ease, co
 @keyframes toast-in { from { opacity: 0; transform: translateX(40px) scale(.95); } to { opacity: 1; transform: translateX(0) scale(1); } }
 
 .campus-background { opacity: 0.8; }
+
+/* Calm native scroll choreography, without scroll hijacking or a motion library. */
+.campus-scroll-progress {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 45;
+  height: 2px;
+  background: var(--primary);
+  transform-origin: left;
+  transform: scaleX(var(--scroll-progress, 0));
+  pointer-events: none;
+}
+.scroll-pending {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 650ms ease, transform 650ms cubic-bezier(.2,.8,.2,1);
+}
+.scroll-pending.scroll-visible { opacity: 1; transform: none; }
+.campus-overview-photo, .campus-auth-photo { opacity: var(--campus-image-opacity); }
+.campus-overview-shade { background: var(--campus-shade); }
+.campus-auth-shade { background: var(--campus-auth-shade); }
+.campus-overview { min-height: 360px; }
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .campus-overview-photo {
+      animation: campus-depth linear both;
+      animation-timeline: view();
+      animation-range: exit 0% exit 100%;
+    }
+  }
+}
+@keyframes campus-depth { from { transform: scale(1.015); } to { transform: scale(1.08) translateY(12px); } }
+@media (max-width: 639px) {
+  .campus-overview-shade { background: color-mix(in oklab, var(--background) 88%, transparent); }
+  .campus-overview-photo { object-position: 65% center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scroll-pending { opacity: 1; transform: none; transition: none; }
+  .campus-overview-photo { animation: none; }
+}
