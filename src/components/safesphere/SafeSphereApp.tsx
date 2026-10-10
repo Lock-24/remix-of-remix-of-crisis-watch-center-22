@@ -7,6 +7,8 @@ import {
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Button } from "./Button";
 import { CampusBackground } from "./CampusBackground";
+import { ScrollEffects } from "./ScrollEffects";
+import campusCourtyard from "@/assets/campus-courtyard.jpg";
 import {
   DEFAULT_THEME, eligibleAudience, accountBasedAlert, acknowledgeForUser, acknowledgementRate, createSimulatedAlert, defaultAlerts, defaultContent, defaultNotices,
   hashPassword, isAdminPassword, loginUser, normalizeUsername, timeAgo, validateSignup,
@@ -166,7 +168,7 @@ export function SafeSphereApp() {
   const adminModal = adminPrompt && <AdminLoginModal onClose={() => setAdminPrompt(false)} onUnlock={unlockAdmin} />;
 
   if (!signedIn && !admin) {
-    return <main className="relative min-h-screen bg-background text-foreground"><Blobs />
+    return <main className="relative min-h-screen bg-background text-foreground"><Blobs /><ScrollEffects />
       <div className="absolute right-4 top-4 z-10">{themeBtn}</div>
       <AuthScreen content={content} users={users} onOpenAdmin={() => setAdminPrompt(true)}
         onLogin={(name) => { setSession(name); setView("dashboard"); if (permission === "default") void requestPermission(); }}
@@ -179,6 +181,7 @@ export function SafeSphereApp() {
   return (
     <main className="relative min-h-screen bg-background text-foreground">
       <Blobs />
+      <ScrollEffects />
       <header className="sticky top-0 z-40 border-b border-border/80 bg-background/60 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-[1280px] items-center justify-between gap-3 px-4 sm:px-6">
           <Button variant="ghost" className="h-auto px-0 text-foreground" onClick={() => navigate("dashboard")} aria-label="Go to dashboard"><Logo name={content.projectName} /></Button>
@@ -227,7 +230,10 @@ function AuthScreen({ content, users, onLogin, onSignup, onOpenAdmin }: { conten
       else { const err = validateSignup(users, username, password); if (err) setError(err); else onSignup({ username: normalizeUsername(username), passwordHash: await hashPassword(password), blocked: false, createdAt: Date.now() }); }
     } finally { setBusy(false); }
   };
-  return <div className="relative mx-auto grid min-h-screen max-w-6xl items-center gap-10 px-4 py-10 lg:grid-cols-[1.1fr_.9fr]">
+  return <div className="campus-auth relative isolate">
+    <img src={campusCourtyard} width={1536} height={768} alt="" className="campus-auth-photo absolute inset-0 -z-20 h-full w-full object-cover" />
+    <div className="campus-auth-shade absolute inset-0 -z-10" />
+    <div className="relative mx-auto grid min-h-[min(850px,95svh)] max-w-6xl items-center gap-10 px-4 py-16 lg:grid-cols-[1.1fr_.9fr]">
     <section className="animate-enter">
       <Logo name={content.projectName} />
       <div className="mt-10 inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary"><Sparkles className="size-3.5" /> Smart campus alert platform</div>
@@ -247,7 +253,7 @@ function AuthScreen({ content, users, onLogin, onSignup, onOpenAdmin }: { conten
       </form>
       <div className="mt-6 border-t border-border pt-5"><Button variant="ghost" className="w-full" onClick={onOpenAdmin}><Lock className="size-4" /> Open Admin Panel</Button></div>
     </section>
-  </div>;
+  </div></div>;
 }
 
 function AdminLoginModal({ onClose, onUnlock }: { onClose: () => void; onUnlock: () => void }) {
@@ -265,10 +271,10 @@ function AdminLoginModal({ onClose, onUnlock }: { onClose: () => void; onUnlock:
 }
 
 function SectionHeading({ eyebrow, title, description, action }: { eyebrow: string; title: string; description: string; action?: React.ReactNode }) {
-  return <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-primary">{eyebrow}</p><h1 className="font-display text-2xl font-bold sm:text-3xl">{title}</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{description}</p></div>{action}</div>;
+  return <div data-scroll-reveal className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-primary">{eyebrow}</p><h1 className="font-display text-2xl font-bold sm:text-3xl">{title}</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{description}</p></div>{action}</div>;
 }
 function Metric({ icon, label, value, detail, tone }: { icon: React.ReactNode; label: string; value: string; detail: string; tone: string }) {
-  return <div className="glass-panel hover-lift p-5"><div className="flex items-center justify-between"><p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p><span className={`metric-icon ${tone}`}>{icon}</span></div><p className="mt-3 font-display text-3xl font-semibold">{value}</p><p className="mt-1 text-xs text-muted-foreground">{detail}</p></div>;
+  return <div data-scroll-reveal className="glass-panel hover-lift p-5"><div className="flex items-center justify-between"><p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p><span className={`metric-icon ${tone}`}>{icon}</span></div><p className="mt-3 font-display text-3xl font-semibold">{value}</p><p className="mt-1 text-xs text-muted-foreground">{detail}</p></div>;
 }
 
 function AlertCard({ alert, acknowledge, resolve, admin, username }: { username: string | null; alert: AlertRecord; acknowledge: (id: string) => void; resolve: (id: string) => void; admin: boolean }) {
@@ -290,12 +296,16 @@ function Dashboard({ content, alerts, notices, navigate, acknowledge, resolve, a
   const chartData = [...alerts].sort((a, b) => a.createdAt - b.createdAt).map((alert) => ({ time: new Date(alert.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), alerts: alert.audience, response: acknowledgementRate(alert) }));
   const locations = [...new Set(alerts.map((alert) => alert.location))];
   return <div>
-    <section className="mb-8 flex flex-col justify-between gap-5 border-b border-border pb-7 md:flex-row md:items-end">
-      <div><p className="mb-3 flex items-center gap-2 text-xs font-semibold text-primary"><span className="size-2 rounded-full bg-primary" /> CAMPUS SAFETY OVERVIEW</p>
-        <h1 className="font-display text-3xl font-semibold sm:text-4xl">Your campus, in safe hands.</h1>
-        <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">{content.projectTagline}</p>
+    <section className="campus-overview relative isolate -mx-4 mb-8 overflow-hidden border-b border-border px-4 py-10 sm:-mx-6 sm:px-6 sm:py-14">
+      <img src={campusCourtyard} width={1536} height={768} alt="Illustrative college campus courtyard" className="campus-overview-photo absolute inset-0 -z-20 h-full w-full object-cover" />
+      <div className="campus-overview-shade absolute inset-0 -z-10" />
+      <div className="max-w-xl"><p className="mb-4 flex items-center gap-2 text-xs font-semibold text-primary"><ShieldCheck className="size-4" /> CAMPUS SAFETY OVERVIEW</p>
+        <h1 className="font-display text-4xl font-semibold sm:text-5xl">{content.projectName}</h1>
+        <p className="mt-3 text-xl font-medium">Your campus, in safe hands.</p>
+        <p className="mt-3 max-w-md text-sm leading-6 text-muted-foreground">{content.projectTagline}</p>
       </div>
-      <div className="flex flex-wrap gap-2"><Button onClick={() => navigate("requests")}><MessageSquarePlus className="size-4" /> Send a request</Button><Button variant="primary" onClick={() => navigate("alerts")}><Siren className="size-4" /> View alerts</Button></div>
+      <div className="mt-6 flex flex-wrap gap-2"><Button variant="primary" onClick={() => navigate("alerts")}><Siren className="size-4" /> View alerts</Button><Button onClick={() => navigate("requests")}><MessageSquarePlus className="size-4" /> Send a request</Button></div>
+      <p className="mt-8 text-[11px] text-muted-foreground">Campus demonstration · Illustrative campus image</p>
     </section>
     <section className="stagger mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <Metric icon={<AlertTriangle className="size-5" />} label="Active alerts" value={String(active.length)} detail="Currently in progress" tone="metric-danger" />
@@ -303,13 +313,13 @@ function Dashboard({ content, alerts, notices, navigate, acknowledge, resolve, a
       <Metric icon={<Users className="size-5" />} label="Alert audience" value={String(audienceCount)} detail="Unique local registered recipients" tone="metric-info" />
       <Metric icon={<Megaphone className="size-5" />} label="Notices" value={String(notices.length)} detail="Published by admin" tone="metric-primary" />
     </section>
-    <section className="mb-6 grid gap-5 lg:grid-cols-[1.4fr_.6fr]">
+    <section data-scroll-reveal className="mb-6 grid gap-5 lg:grid-cols-[1.4fr_.6fr]">
       <div className="min-w-0 border-y border-border py-5"><div className="mb-4 flex items-center justify-between"><div><h2 className="font-semibold">Response overview</h2><p className="mt-1 text-xs text-muted-foreground">Recorded alert responses · This browser</p></div><span className="flex items-center gap-2 text-xs text-primary"><span className="size-2 rounded-full bg-primary" /> Response rate</span></div>
         <div className="h-56"><ResponsiveContainer width="100%" height="100%"><AreaChart data={chartData}><defs><linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--primary)" stopOpacity={0.5} /><stop offset="100%" stopColor="var(--primary)" stopOpacity={0} /></linearGradient><linearGradient id="g2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--info)" stopOpacity={0.5} /><stop offset="100%" stopColor="var(--info)" stopOpacity={0} /></linearGradient></defs><CartesianGrid stroke="var(--chart-grid)" vertical={false} /><XAxis dataKey="time" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} /><YAxis stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} /><Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, color: "var(--foreground)" }} /><Area type="monotone" dataKey="response" stroke="var(--primary)" fill="url(#g1)" strokeWidth={2} name="Response %" /><Area type="monotone" dataKey="alerts" stroke="var(--info)" fill="url(#g2)" strokeWidth={2} name="Registered recipients" /></AreaChart></ResponsiveContainer></div>
       </div>
       <div className="border-y border-border py-5"><h2 className="mb-1 font-semibold">Alert locations</h2><p className="mb-4 text-xs text-muted-foreground">Locations from recorded alerts</p><div className="grid gap-3">{locations.map((location) => <div key={location} className="flex items-center gap-3 border-b border-border py-3 last:border-0"><span className="metric-icon metric-primary"><Building2 className="size-4" /></span><span className="flex-1 text-sm font-semibold">{location}</span></div>)}</div></div>
     </section>
-    <div className="mb-4 flex items-center justify-between"><h2 className="font-display text-xl font-semibold">Active alerts</h2><Button size="sm" variant="ghost" onClick={() => navigate("alerts")}>View all</Button></div>
+    <div data-scroll-reveal className="mb-4 flex items-center justify-between"><h2 className="font-display text-xl font-semibold">Active alerts</h2><Button size="sm" variant="ghost" onClick={() => navigate("alerts")}>View all</Button></div>
     <div className="grid gap-4 md:grid-cols-2">{active.length ? active.slice(0, 4).map((a) => <AlertCard key={a.id} alert={a} username={username} acknowledge={acknowledge} resolve={resolve} admin={admin} />) : <p className="glass-panel p-6 text-sm text-muted-foreground">No active alerts. All clear.</p>}</div>
   </div>;
 }
@@ -332,7 +342,7 @@ function NoticesView({ notices }: { notices: Notice[] }) {
 function AwsView({ intro }: { intro: string }) {
   const services = [[Zap, "AWS Lambda", "Serverless functions process and route alerts instantly."], [Send, "Amazon SNS", "Fan-out push, SMS and email notifications at scale."], [Database, "DynamoDB", "Low-latency storage for alerts, users and acknowledgements."], [Network, "API Gateway", "Secure, throttled entry point for all clients."], [CloudCog, "CloudWatch", "Monitoring, logs and automatic incident dashboards."], [ShieldCheck, "Cognito", "User sign-in, roles and access control."]] as const;
   return <div><SectionHeading eyebrow="About AWS" title="Cloud architecture blueprint" description={intro} />
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{services.map(([Icon, t, d]) => <div key={t} className="glass-panel hover-lift p-5"><span className="metric-icon metric-primary"><Icon className="size-5" /></span><h3 className="mt-4 font-bold">{t}</h3><p className="mt-1 text-sm leading-6 text-muted-foreground">{d}</p></div>)}</div></div>;
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{services.map(([Icon, t, d]) => <div data-scroll-reveal key={t} className="glass-panel hover-lift p-5"><span className="metric-icon metric-primary"><Icon className="size-5" /></span><h3 className="mt-4 font-bold">{t}</h3><p className="mt-1 text-sm leading-6 text-muted-foreground">{d}</p></div>)}</div></div>;
 }
 
 function TeamFooter({ content }: { content: SiteContent }) {
