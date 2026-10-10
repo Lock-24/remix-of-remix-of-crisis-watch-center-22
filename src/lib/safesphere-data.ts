@@ -12,6 +12,9 @@ export type AlertRecord = {
   acknowledged: number;
   createdAt: number;
   simulated: true;
+  sender?: string;
+  recipients?: string[];
+  acknowledgedBy?: string[];
 };
 
 export type Notice = { id: string; title: string; body: string; createdAt: number };
@@ -60,6 +63,24 @@ export const defaultContent: SiteContent = {
 
 export function createSimulatedAlert(input: Omit<AlertRecord, "id" | "status" | "acknowledged" | "createdAt" | "simulated">, sequence: number): AlertRecord {
   return { ...input, id: `ALT-${sequence}`, status: "Active", acknowledged: 0, createdAt: Date.now(), simulated: true };
+}
+
+export const DEFAULT_THEME = "light";
+
+export function eligibleAudience(users: AppUser[]): string[] {
+  return [...new Set(users.filter((user) => !user.blocked).map((user) => user.username))];
+}
+
+export function accountBasedAlert(alert: AlertRecord, users: AppUser[]): AlertRecord {
+  const recipients = alert.recipients ?? eligibleAudience(users);
+  const acknowledgedBy = [...new Set(alert.acknowledgedBy ?? [])].filter((name) => recipients.includes(name));
+  return { ...alert, sender: alert.sender?.trim() || "Admin", recipients, acknowledgedBy, audience: recipients.length, acknowledged: acknowledgedBy.length };
+}
+
+export function acknowledgeForUser(alert: AlertRecord, username: string | null): AlertRecord {
+  if (!username || alert.status !== "Active" || !alert.recipients?.includes(username) || alert.acknowledgedBy?.includes(username)) return alert;
+  const acknowledgedBy = [...(alert.acknowledgedBy ?? []), username];
+  return { ...alert, acknowledgedBy, acknowledged: acknowledgedBy.length };
 }
 
 export function acknowledgementRate(alert: AlertRecord) {
