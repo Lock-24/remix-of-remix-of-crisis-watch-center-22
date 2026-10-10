@@ -8,4 +8,4 @@
 - [x] Refresh the campus dashboard with a professional glass color system
 - [ ] Install and recolor Neural Flash with the requested settings — blocked by the paid ReactBits license; original ambient canvas alternative is in place
 - [x] Move team presentation into the footer and verify sign-up, requests, animated alerts, persistence, and both themes
-- [ ] Default to light, replace invented audience/activity with account-based counts, and display alert senders
+- [x] Default to light, replace invented audience/activity with account-based counts, and display alert senders; verified unique acknowledgements and saved sender details
