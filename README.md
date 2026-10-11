@@ -1,6 +1,6 @@
 # Remix of Crisis Watch Center
 
-Build SafeSphere, ek professional, modern emergency alert website for colleges, offices, factories, hospitals aur homes. Website ka theme premium glassmorphism hona chahiye, with frosted-glass cards, transparent panels, subtle blur effects, smooth animations, dark navy background aur red emergency highlights. UI clean, futuristic, professional aur fully responsive ho.
+Build EcoSprint, ek professional, modern emergency alert website for colleges, offices, factories, hospitals aur homes. Website ka theme premium glassmorphism hona chahiye, with frosted-glass cards, transparent panels, subtle blur effects, smooth animations, dark navy background aur red emergency highlights. UI clean, futuristic, professional aur fully responsive ho.
 
 
 
