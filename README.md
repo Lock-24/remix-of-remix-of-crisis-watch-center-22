@@ -18,11 +18,8 @@ Ek professional Team section banao: “Made by Ankur”, team member Ankush aur 
 
 Poora website content simple Hinglish (Hindi + English) mein rakho. Professional typography, glass-effect navigation bar, elegant icons, responsive dashboard cards, interactive charts aur polished layouts use karo. Demo alerts ko clearly simulated label karo. Final website hackathon presentation ke liye impressive, secure, functional aur production-quality design wali honi chahiye.
 
-This project was built with [Lovable](https://lovable.dev).
 
-## Build with 
 
-(https://lovable.dev/projects/c5ab0027-424f-430f-ac19-d6b4d4f6c3b6).
 
 - **Ship faster**: describe what you want to build and Lovable handles the code.
 - **Stay in sync**: every change made in Lovable is committed straight to this repository.
