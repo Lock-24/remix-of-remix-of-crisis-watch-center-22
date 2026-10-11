@@ -20,9 +20,9 @@ Poora website content simple Hinglish (Hindi + English) mein rakho. Professional
 
 This project was built with [Lovable](https://lovable.dev).
 
-## Build with Lovable
+## Build with 
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/c5ab0027-424f-430f-ac19-d6b4d4f6c3b6).
+(https://lovable.dev/projects/c5ab0027-424f-430f-ac19-d6b4d4f6c3b6).
 
 - **Ship faster**: describe what you want to build and Lovable handles the code.
 - **Stay in sync**: every change made in Lovable is committed straight to this repository.
